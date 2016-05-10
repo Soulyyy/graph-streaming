@@ -1,7 +1,9 @@
 package utils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -21,7 +23,7 @@ public class Algorithm {
   //Stream, look at one edge at once
   private Stream<Edge> edgeStream;
 
-  public boolean isBipartite() throws NotBipartiteException {
+  public Bipartition bipartition() throws NotBipartiteException {
     Map<Vertex, ConnectedComponent> connectedComponents = createConnectedComponents();
     Iterator<Edge> edgePointer = edgeStream.iterator();
     while (edgePointer.hasNext()) {
@@ -40,7 +42,7 @@ public class Algorithm {
       }
      mergeConnectedComponents(connectedComponents, left, right);
     }
-    return true;
+    return createBipartition();
   }
 
   private Map<Vertex, ConnectedComponent> createConnectedComponents() {
@@ -59,6 +61,20 @@ public class Algorithm {
     newComponent.addComponent(toAddComponent);
     connectedComponents.put(left, newComponent);
     connectedComponents.put(right, newComponent);
+  }
+
+  private Bipartition createBipartition() {
+    List<Vertex> partitionOne = new ArrayList<>();
+    List<Vertex> partitionTwo = new ArrayList<>();
+    for (Vertex v : lookupTable.values()) {
+      if (v.isSign()) {
+        partitionOne.add(v);
+      }
+      else {
+        partitionTwo.add(v);
+      }
+    }
+    return new Bipartition(partitionOne, partitionTwo);
   }
 
 }

@@ -5,6 +5,7 @@ import graph.Vertex;
 import utils.Algorithm;
 import utils.GraphToMap;
 import utils.JSONtoGraph;
+import graph.MatchingAlgorithm;
 
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,9 @@ public class Main {
     Map<String, Vertex> lookupTable = GraphToMap.createGraphLookup(graph);
     List<Edge> edges = JSONtoGraph.createEdgeStream("edges.json");
     Algorithm algorithm = new Algorithm(lookupTable, edges.stream());
-    boolean isBipartite = algorithm.isBipartite();
-    System.out.println(isBipartite);
+    Bipartition bipartition = algorithm.bipartition();
+    System.out.println(bipartition);
+    MatchingAlgorithm matching = new MatchingAlgorithm(lookupTable, edges.stream());
+    matching.findUnweightedMatching(0.2);
   }
 }
