@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import graph.Bipartition;
 import graph.ConnectedComponent;
 import graph.Edge;
+import graph.Matching;
 import graph.Vertex;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,5 +77,11 @@ public class Algorithm {
     }
     return new Bipartition(partitionOne, partitionTwo);
   }
+
+  public Matching createMaximalMatching() {
+
+  }
+
+
 
 }
