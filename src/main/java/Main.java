@@ -9,9 +9,9 @@ import java.util.Map;
 public class Main {
 
   public static void main(String[] args) throws Exception {
-    Graph graph = JSONtoGraph.createVertexList("vertices2.json");
+    Graph graph = JSONtoGraph.createVertexList("verticesfailmatching.json");
     Map<String, Vertex> lookupTable = GraphToMap.createGraphLookup(graph);
-    Cache.setEdgeStreamFileName("edges2.json");
+    Cache.setEdgeStreamFileName("edgesfailmatching.json");
     Algorithm algorithm = new Algorithm(lookupTable);
     Bipartition bipartition = algorithm.bipartition();
     System.out.println(bipartition);

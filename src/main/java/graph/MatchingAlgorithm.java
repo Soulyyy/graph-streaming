@@ -27,30 +27,40 @@ public class MatchingAlgorithm {
   public void findUnweightedMatching(double epsilon) throws NotBipartiteException, FileNotFoundException {
     Algorithm algorithm = new Algorithm(lookupTable);
     Bipartition bipartition = algorithm.bipartition();
-    int loopConstant = (int)ceil(log(6.0 * epsilon) / log(8.0 / 9.0));
+    int loopConstant = (int) ceil(log(6.0 * epsilon) / log(8.0 / 9.0));
     log.info("Loop constant is: {}", loopConstant);
     for (int i = 1; i < loopConstant; i++) {
       double sigma = epsilon / (2 - 3 * epsilon);
-      findAugmentingPaths(bipartition, sigma);
+      List<AugmentingPath> augmentingPaths = findAugmentingPaths(bipartition, sigma);
+      applyAugmentingPathChanges(augmentingPaths);
     }
+    log.info("The final matching is: {}", matching);
 
   }
 
-  public void findAugmentingPaths(Bipartition bipartition, double sigma) throws FileNotFoundException {
-    Set<MatchingLeftWingPair> leftWings = findDisjointLeftWings(matching);
-    if(leftWings.size() <= matching.getEdges().size() * sigma) {
-      return;
-    }
-    List<>
+  public List<AugmentingPath> findAugmentingPaths(Bipartition bipartition, double sigma) throws FileNotFoundException {
+    List<AugmentingPath> augmentingPaths = new ArrayList<>();
+    Set<String> ignoreVertices = new HashSet<>();
+    while (true) {
+      Set<MatchingLeftWingPair> leftWings = findDisjointLeftWings(ignoreVertices);
+      if (leftWings.size() <= matching.getEdges().size() * sigma) {
+        return augmentingPaths;
+      }
+      Set<Edge> rightWings = findDisjointRightWings(leftWings);
+      ignoreVertices = filterVertices(leftWings, rightWings, ignoreVertices);
 
-    while(iterator.hasNext()) {
-      Edge edge = iterator.next();
-      System.out.println(edge);
+      for(MatchingLeftWingPair pair: leftWings) {
+        for(Edge rightwing: rightWings) {
+          if (pair.getOpenVertex().equals(rightwing.getLeftVertex()) || pair.getOpenVertex().equals(rightwing.getRightVertex())) {
+            augmentingPaths.add(new AugmentingPath(pair.getMatchingEdge(), pair.getLeftWingEdge(), rightwing));
+          }
+        }
+      }
     }
   }
 
   //Find for matching only
-  private Set<MatchingLeftWingPair> findDisjointLeftWings(Matching matching) throws FileNotFoundException {
+  private Set<MatchingLeftWingPair> findDisjointLeftWings(Set<String> ignoreVertices) throws FileNotFoundException {
     Set<Vertex> verticesInLeftWing = new HashSet<>();
     Set<Edge> leftEdges = new HashSet<>();
     Set<MatchingLeftWingPair> matchingPairs = new HashSet<>();
@@ -61,16 +71,30 @@ public class MatchingAlgorithm {
       Vertex right = vertexLookup(edge.getRightVertex());
       if (!verticesInLeftWing.contains(left) && !verticesInLeftWing.contains(right)) {
         Set<String> matchingVertexNames = matching.getMatchingVertices();
-        if(matchingVertexNames.contains(edge.getLeftVertex()) || matchingVertexNames.contains(edge.getRightVertex())) {
+        if (matchingVertexNames.contains(edge.getLeftVertex()) || matchingVertexNames.contains(edge.getRightVertex())) {
           log.trace("Matching edges are: {}", matching.getEdges());
-          if(!matching.getEdges().contains(edge)) {
+          if (!matching.getEdges().contains(edge)) {
             leftEdges.add(edge);
-            for(Edge matchingEdge : matching.getEdges()) {
-              if(matchingEdge.getLeftVertex().equals(edge.getLeftVertex()) || matchingEdge.getLeftVertex().equals(edge.getRightVertex())) {
-                matchingPairs.add(new MatchingLeftWingPair(matchingEdge, edge, matchingEdge.getRightVertex()));
+            for (Edge matchingEdge : matching.getEdges()) {
+
+              //Refac these blocks
+              boolean contains = false;
+              if(ignoreVertices.contains(matchingEdge.getLeftVertex()) || ignoreVertices.contains(matchingEdge.getRightVertex())) {
+                contains = true;
               }
-              else if(matchingEdge.getRightVertex().equals(edge.getLeftVertex()) || matchingEdge.getRightVertex().equals(edge.getRightVertex())) {
-                matchingPairs.add(new MatchingLeftWingPair(matchingEdge, edge, matchingEdge.getLeftVertex()));
+
+              if(ignoreVertices.contains(edge.getLeftVertex()) || ignoreVertices.contains(edge.getRightVertex())) {
+                contains = true;
+              }
+
+              if (matchingEdge.getLeftVertex().equals(edge.getLeftVertex()) || matchingEdge.getLeftVertex().equals(edge.getRightVertex())) {
+                if(!contains) {
+                  matchingPairs.add(new MatchingLeftWingPair(matchingEdge, edge, matchingEdge.getRightVertex()));
+                }
+              } else if (matchingEdge.getRightVertex().equals(edge.getLeftVertex()) || matchingEdge.getRightVertex().equals(edge.getRightVertex())) {
+                if(!contains) {
+                  matchingPairs.add(new MatchingLeftWingPair(matchingEdge, edge, matchingEdge.getLeftVertex()));
+                }
               }
             }
             verticesInLeftWing.add(left);
@@ -84,27 +108,70 @@ public class MatchingAlgorithm {
     return matchingPairs;
   }
 
-  private List<Edge> findDisjointRightWings(Set<MatchingLeftWingPair> matchingPairs) throws FileNotFoundException {
+  private Set<Edge> findDisjointRightWings(Set<MatchingLeftWingPair> matchingPairs) throws FileNotFoundException {
+    Set<Edge> rightWings = new HashSet<>();
     Iterator<Edge> iterator = JSONtoGraph.createEdgeStream(Cache.getEdgeStreamFileName()).iterator();
     while (iterator.hasNext()) {
       Edge edge = iterator.next();
-      if(!matching.getEdges().contains(edge)) {
-        for(MatchingLeftWingPair pair : matchingPairs) {
-          if(pair.getOpenVertex().equals(edge.getLeftVertex()) || pair.getOpenVertex().equals(edge.getRightVertex())) {
-            List<Edge> changeList = new ArrayList<>();
+      if (!matching.getEdges().contains(edge)) {
+        for (MatchingLeftWingPair pair : matchingPairs) {
+          if (pair.getOpenVertex().equals(edge.getLeftVertex()) || pair.getOpenVertex().equals(edge.getRightVertex())) {
+            rightWings.add(edge);
+/*            List<Edge> changeList = new ArrayList<>();
             changeList.add(pair.matchingEdge);
             changeList.add(pair.getLeftWingEdge());
             changeList.add(edge);
-            return changeList;
+            return changeList;*/
           }
         }
       }
 
     }
+    log.info("Right wings are: {}", rightWings);
+    return rightWings;
+  }
+
+  private Set<String> filterVertices(Set<MatchingLeftWingPair> leftPairs, Set<Edge> rightWings, Set<String> ignoreVertices) throws FileNotFoundException {
+
+    Iterator<Edge> iterator = JSONtoGraph.createEdgeStream(Cache.getEdgeStreamFileName()).iterator();
+    //Filter left pairs
+    for (MatchingLeftWingPair pair : leftPairs) {
+      Edge matchingEdge = pair.getMatchingEdge();
+      ignoreVertices.add(matchingEdge.getLeftVertex());
+      ignoreVertices.add(matchingEdge.getRightVertex());
+      for (Edge rightWing : rightWings) {
+        if (rightWing.getLeftVertex().equals(pair.getOpenVertex()) || rightWing.getRightVertex().equals(pair.getOpenVertex())) {
+          if (pair.getOpenVertex().equals(pair.getLeftWingEdge().getLeftVertex())) {
+            ignoreVertices.add(pair.getLeftWingEdge().getRightVertex());
+          } else {
+            ignoreVertices.add(pair.getLeftWingEdge().getLeftVertex());
+          }
+
+          if (rightWing.getLeftVertex().equals(pair.getOpenVertex())) {
+            ignoreVertices.add(rightWing.getRightVertex());
+          } else {
+            ignoreVertices.add(rightWing.getLeftVertex());
+          }
+        }
+      }
+    }
+
+    //TODO failure sweep for case 2
+    //What is the point with the third point?
+
+    return ignoreVertices;
   }
 
   private Vertex vertexLookup(String vertexName) {
     return lookupTable.get(vertexName);
+  }
+
+  private void applyAugmentingPathChanges(List<AugmentingPath> augmentingPaths) {
+    for(AugmentingPath augmentingPath: augmentingPaths) {
+      matching.getEdges().remove(augmentingPath.getToReplace());
+      matching.addEdge(augmentingPath.leftEdge);
+      matching.addEdge(augmentingPath.rightEdge);
+    }
   }
 
 
@@ -124,5 +191,21 @@ public class MatchingAlgorithm {
     @Setter
     private String openVertex;
 
+  }
+
+  @AllArgsConstructor
+  private static class AugmentingPath {
+
+    @Getter
+    @Setter
+    private Edge toReplace;
+
+    @Getter
+    @Setter
+    private Edge leftEdge;
+
+    @Getter
+    @Setter
+    private Edge rightEdge;
   }
 }
