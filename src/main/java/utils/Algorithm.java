@@ -74,7 +74,7 @@ public class Algorithm {
 
   //1/2 approximation
   public Matching createMaximalMatching() throws FileNotFoundException {
-    List<Edge> matchingEdges = new ArrayList<>();
+    Set<Edge> matchingEdges = new HashSet<>();
     Set<Vertex> verticesInMatching = new HashSet<>();
     Iterator<Edge> edgeIterator = JSONtoGraph.createEdgeStream(Cache.getEdgeStreamFileName()).iterator();
     while (edgeIterator.hasNext()) {

@@ -18,6 +18,6 @@ public class Main {
     Matching matching = algorithm.createMaximalMatching();
     MatchingAlgorithm matchingAlgorithm = new MatchingAlgorithm(lookupTable, matching);
     System.out.println(algorithm.createMaximalMatching());
-    matchingAlgorithm.findUnweightedMatching(0.2);
+    matchingAlgorithm.findUnweightedMatching(0.05);
   }
 }
