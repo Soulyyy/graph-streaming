@@ -1,10 +1,7 @@
 package utils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.io.FileNotFoundException;
+import java.util.*;
 import java.util.stream.Stream;
 
 import graph.Bipartition;
@@ -21,19 +18,17 @@ public class Algorithm {
 
   //Spatial complexity of M, number of Vertices
   private final Map<String, Vertex> lookupTable;
-  //Stream, look at one edge at once
-  private Stream<Edge> edgeStream;
 
-  public Bipartition bipartition() throws NotBipartiteException {
+  public Bipartition bipartition() throws NotBipartiteException, FileNotFoundException {
     Map<Vertex, ConnectedComponent> connectedComponents = createConnectedComponents();
-    Iterator<Edge> edgePointer = edgeStream.iterator();
-    while (edgePointer.hasNext()) {
-      Edge edge = edgePointer.next();
+    Iterator<Edge> edgeIterator = JSONtoGraph.createEdgeStream(Cache.getEdgeStreamFileName()).iterator();
+    while (edgeIterator.hasNext()) {
+      Edge edge = edgeIterator.next();
       Vertex left = vertexLookup(edge.getLeftVertex());
       Vertex right = vertexLookup(edge.getRightVertex());
-      if(left.isSign() == right.isSign()) {
+      if (left.isSign() == right.isSign()) {
         connectedComponents.get(right).flipElementSigns();
-        if(left.isSign() == right.isSign()) {
+        if (left.isSign() == right.isSign()) {
           log.info("Left: {}", connectedComponents.get(left));
           log.info("Right: {}", connectedComponents.get(right));
           log.info("This is not bipartite");
@@ -41,7 +36,7 @@ public class Algorithm {
 
         }
       }
-     mergeConnectedComponents(connectedComponents, left, right);
+      mergeConnectedComponents(connectedComponents, left, right);
     }
     return createBipartition();
   }
@@ -70,18 +65,30 @@ public class Algorithm {
     for (Vertex v : lookupTable.values()) {
       if (v.isSign()) {
         partitionOne.add(v);
-      }
-      else {
+      } else {
         partitionTwo.add(v);
       }
     }
     return new Bipartition(partitionOne, partitionTwo);
   }
 
-  public Matching createMaximalMatching() {
-
+  //1/2 approximation
+  public Matching createMaximalMatching() throws FileNotFoundException {
+    List<Edge> matchingEdges = new ArrayList<>();
+    Set<Vertex> verticesInMatching = new HashSet<>();
+    Iterator<Edge> edgeIterator = JSONtoGraph.createEdgeStream(Cache.getEdgeStreamFileName()).iterator();
+    while (edgeIterator.hasNext()) {
+      Edge edge = edgeIterator.next();
+      Vertex left = vertexLookup(edge.getLeftVertex());
+      Vertex right = vertexLookup(edge.getRightVertex());
+      if (!verticesInMatching.contains(left) && !verticesInMatching.contains(right)) {
+        matchingEdges.add(edge);
+        verticesInMatching.add(left);
+        verticesInMatching.add(right);
+      }
+    }
+    return new Matching(matchingEdges);
   }
-
 
 
 }

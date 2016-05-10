@@ -16,17 +16,20 @@ import java.util.List;
 public class JSONtoGraph {
 
   public static Graph createVertexList(String path) throws FileNotFoundException {
-    File file = new File(JSONtoGraph.class.getClassLoader().getResource(path).getFile());
-    JsonReader reader = new JsonReader(new FileReader(file));
+    JsonReader reader = openJsonReader(path);
     Gson gson = new Gson();
     Vertex[] vertices = gson.fromJson(reader, Vertex[].class);
     return new Graph(vertices);
   }
 
   public static List<Edge> createEdgeStream(String path) throws FileNotFoundException {
-    File file = new File(JSONtoGraph.class.getClassLoader().getResource(path).getFile());
-    JsonReader reader = new JsonReader(new FileReader(file));
+    JsonReader reader = openJsonReader(path);
     Gson gson = new Gson();
     return Arrays.asList(gson.fromJson(reader, Edge[].class));
+  }
+
+  private static JsonReader openJsonReader(String path) throws FileNotFoundException {
+    File file = new File(JSONtoGraph.class.getClassLoader().getResource(path).getFile());
+    return new JsonReader(new FileReader(file));
   }
 }

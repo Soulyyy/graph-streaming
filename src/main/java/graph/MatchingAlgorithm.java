@@ -1,5 +1,6 @@
 package graph;
 
+import java.io.FileNotFoundException;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -16,11 +17,9 @@ public class MatchingAlgorithm {
 
   //Spatial complexity of M, number of Vertices
   private final Map<String, Vertex> lookupTable;
-  //Stream, look at one edge at once
-  private Stream<Edge> edgeStream;
 
-  public void findUnweightedMatching(double epsilon) throws NotBipartiteException {
-    Algorithm algorithm = new Algorithm(lookupTable, edgeStream);
+  public void findUnweightedMatching(double epsilon) throws NotBipartiteException, FileNotFoundException {
+    Algorithm algorithm = new Algorithm(lookupTable);
     Bipartition bipartition = algorithm.bipartition();
     for (int i = 1; i < ceil(log(6 * epsilon) / log(8 / 9)); i++) {
       double sigma = epsilon / (2 - 3 * epsilon);

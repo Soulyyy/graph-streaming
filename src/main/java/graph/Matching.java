@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 
 @AllArgsConstructor
+@EqualsAndHashCode
 public class Matching {
 
   public Matching() {
@@ -16,5 +18,12 @@ public class Matching {
 
   public void addEdge(Edge edge) {
     edges.add(edge);
+  }
+
+  @Override
+  public String toString() {
+    return "Matching(" +
+        edges +
+        ")";
   }
 }
