@@ -1,0 +1,7 @@
+[
+  {"left":"a", "right":"e"},
+  {"left":"b", "right":"f"},
+  {"left":"c", "right":"f"},
+  {"left":"c", "right":"g"},
+  {"left":"g", "right":"d"}
+]
