@@ -1,15 +1,24 @@
 package graph;
 
+import com.google.gson.annotations.SerializedName;
+
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class Edge {
 
   @Getter
   @Setter
-  private List<Vertex> vertices = new ArrayList<>();
+  @SerializedName("left")
+  private String leftVertex;
 
+  @Getter
+  @Setter
+  @SerializedName("right")
+  private String rightVertex;
+
+  @Override
+  public String toString() {
+    return "(" + leftVertex + ", " + rightVertex + ")";
+  }
 }
