@@ -1,14 +1,17 @@
-package graph;
+package computation;
 
 import java.io.FileNotFoundException;
 import java.util.*;
 
+import graph.Bipartition;
+import graph.Edge;
+import graph.Matching;
+import graph.Vertex;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import utils.Algorithm;
 import utils.Cache;
 import utils.JSONtoGraph;
 import utils.NotBipartiteException;
@@ -17,14 +20,9 @@ import static java.lang.Math.*;
 
 @AllArgsConstructor
 @Slf4j
-public class MatchingAlgorithm {
+public class MatchingAlgorithm extends AbstractAlgorithm {
 
-  //Spatial complexity of M, number of Vertices
-  private final Map<String, Vertex> lookupTable;
-
-  private Matching matching;
-
-  public void findUnweightedMatching(double epsilon) throws NotBipartiteException, FileNotFoundException {
+  public Matching findUnweightedMatching(double epsilon) throws NotBipartiteException, FileNotFoundException {
     Algorithm algorithm = new Algorithm(lookupTable);
     Bipartition bipartition = algorithm.bipartition();
     int loopConstant = (int) ceil(log(6.0 * epsilon) / log(8.0 / 9.0));
@@ -35,7 +33,7 @@ public class MatchingAlgorithm {
       applyAugmentingPathChanges(augmentingPaths);
     }
     log.info("The final matching is: {}", matching);
-
+    return matching;
   }
 
   public List<AugmentingPath> findAugmentingPaths(Bipartition bipartition, double sigma) throws FileNotFoundException {
