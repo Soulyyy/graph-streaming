@@ -2,11 +2,13 @@ package graph;
 
 import com.google.gson.annotations.SerializedName;
 
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 @EqualsAndHashCode
+@AllArgsConstructor
 public class Edge {
 
   @Getter
@@ -23,4 +25,6 @@ public class Edge {
   public String toString() {
     return "(" + leftVertex + ", " + rightVertex + ")";
   }
+
+
 }
