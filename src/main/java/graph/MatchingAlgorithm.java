@@ -24,7 +24,7 @@ public class MatchingAlgorithm {
 
   private Matching matching;
 
-  public void findUnweightedMatching(double epsilon) throws NotBipartiteException, FileNotFoundException {
+  public void findUnweightedMatching(double epsilon) throws Exception {
     Algorithm algorithm = new Algorithm(lookupTable);
     Bipartition bipartition = algorithm.bipartition();
     int loopConstant = (int) ceil(log(6.0 * epsilon) / log(8.0 / 9.0));
@@ -57,6 +57,22 @@ public class MatchingAlgorithm {
         }
       }
     }
+  }
+
+  public List<AugmentingPath> findAugTest(Bipartition bipartition, double sigma) throws Exception {
+    List<AugmentingPath> augmentingPaths = new ArrayList<>();
+    Set<Vertex> left = bipartition.getFirstPartition();
+    disjointLeft(left);
+   return augmentingPaths;
+  }
+
+  private Set<Vertex> disjointLeft(Set<Vertex> left) throws Exception {
+    Set<Vertex> disjointLeftWings = new HashSet<>();
+    Iterator<Edge> iterator = getStreamHead();
+    for(Edge edge = iterator.next();iterator.hasNext();) {
+      System.out.println(edge);
+    }
+    return disjointLeftWings;
   }
 
   //Find for matching only
@@ -174,6 +190,31 @@ public class MatchingAlgorithm {
     }
   }
 
+  private Iterator<Edge> getStreamHead() throws FileNotFoundException {
+    String filename = Cache.getEdgeStreamFileName();
+    List<Edge> edges = JSONtoGraph.createEdgeStream(filename);
+    Iterator<Edge> edgeIterator = edges.iterator();
+    return edgeIterator;
+  }
+
+  private VertexPair getEdgeVertices(Edge edge) {
+    Vertex left = vertexLookup(edge.getLeftVertex());
+    Vertex right = vertexLookup(edge.getRightVertex());
+    VertexPair pair = new VertexPair(left, right);
+    return pair;
+  }
+
+  @AllArgsConstructor
+  static class VertexPair {
+
+    @Getter
+    @Setter
+    private Vertex leftVertex;
+
+    @Getter
+    @Setter
+    private Vertex rightVertex;
+  }
 
   @AllArgsConstructor
   @ToString

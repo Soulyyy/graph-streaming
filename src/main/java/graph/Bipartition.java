@@ -1,7 +1,9 @@
 package graph;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,17 +13,17 @@ import lombok.Setter;
 public class Bipartition {
 
   public Bipartition() {
-    this.firstPartition = new ArrayList<>();
-    this.secondPartition = new ArrayList<>();
+    this.firstPartition = new HashSet<>();
+    this.secondPartition = new HashSet<>();
   }
 
   @Getter
   @Setter
-  private List<Vertex> firstPartition;
+  private Set<Vertex> firstPartition;
 
   @Getter
   @Setter
-  private List<Vertex> secondPartition;
+  private Set<Vertex> secondPartition;
 
   @Override
   public String toString() {
