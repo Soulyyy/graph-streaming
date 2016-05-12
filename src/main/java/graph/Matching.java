@@ -1,6 +1,8 @@
 package graph;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import lombok.AllArgsConstructor;
@@ -8,16 +10,19 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 @AllArgsConstructor
-@EqualsAndHashCode
+@EqualsAndHashCode(exclude = {"matchingVertices", "vertexEdgeMap"})
 public class Matching {
 
   public Matching(Set<Edge> edges) {
     this.edges = edges;
     this.matchingVertices = new HashSet<>();
+    this.vertexEdgeMap = new HashMap<>();
     //TODO REFACCCC!!!!
     edges.iterator().forEachRemaining(e -> {
       matchingVertices.add(e.getLeftVertex());
       matchingVertices.add(e.getRightVertex());
+      vertexEdgeMap.put(e.getLeftVertex(), e);
+      vertexEdgeMap.put(e.getRightVertex(), e);
     });
   }
 
@@ -28,6 +33,10 @@ public class Matching {
 
   @Getter
   private Set<Edge> edges;
+
+  //TODO major hack, remove
+  @Getter
+  Map<String, Edge> vertexEdgeMap;
 
   //TODO convert to vertices
   @Getter

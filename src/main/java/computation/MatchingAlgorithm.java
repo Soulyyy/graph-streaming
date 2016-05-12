@@ -7,25 +7,27 @@ import graph.Bipartition;
 import graph.Edge;
 import graph.Matching;
 import graph.Vertex;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import utils.Cache;
 import utils.JSONtoGraph;
-import utils.NotBipartiteException;
 
 import static java.lang.Math.*;
 
-@AllArgsConstructor
 @Slf4j
 public class MatchingAlgorithm extends AbstractAlgorithm {
 
-  //Spatial complexity of M, number of Vertices
-  private final Map<String, Vertex> lookupTable;
+  private Set<String> globalIgnore;
 
-  private Matching matching;
+  private Set<String> ignoreVertices;
+  private Set<Edge> edgesWithLeftWings;
+
+  public MatchingAlgorithm(Map<String, Vertex> lookupTable, Matching matching) {
+    super(lookupTable, matching);
+    ignoreVertices = new HashSet<>();
+    edgesWithLeftWings = new HashSet<>();
+    this.globalIgnore = new HashSet<>();
+  }
 
   public Matching findUnweightedMatching(double epsilon) throws Exception {
     Algorithm algorithm = new Algorithm(lookupTable);
@@ -34,7 +36,7 @@ public class MatchingAlgorithm extends AbstractAlgorithm {
     log.info("Loop constant is: {}", loopConstant);
     for (int i = 1; i < loopConstant; i++) {
       double sigma = epsilon / (2 - 3 * epsilon);
-      List<AugmentingPath> augmentingPaths = findAugmentingPaths(bipartition, sigma);
+      List<AugmentingPath> augmentingPaths = findAugmentedPaths(bipartition, sigma);
       applyAugmentingPathChanges(augmentingPaths);
     }
     log.info("The final matching is: {}", matching);
@@ -52,8 +54,8 @@ public class MatchingAlgorithm extends AbstractAlgorithm {
       Set<Edge> rightWings = findDisjointRightWings(leftWings);
       ignoreVertices = filterVertices(leftWings, rightWings, ignoreVertices);
 
-      for(MatchingLeftWingPair pair: leftWings) {
-        for(Edge rightwing: rightWings) {
+      for (MatchingLeftWingPair pair : leftWings) {
+        for (Edge rightwing : rightWings) {
           if (pair.getOpenVertex().equals(rightwing.getLeftVertex()) || pair.getOpenVertex().equals(rightwing.getRightVertex())) {
             augmentingPaths.add(new AugmentingPath(pair.getMatchingEdge(), pair.getLeftWingEdge(), rightwing));
           }
@@ -62,20 +64,92 @@ public class MatchingAlgorithm extends AbstractAlgorithm {
     }
   }
 
-  public List<AugmentingPath> findAugTest(Bipartition bipartition, double sigma) throws Exception {
+  public List<AugmentingPath> findAugmentedPaths(Bipartition bipartition, double sigma) throws Exception {
+    int matchingSize = matching.getEdges().size();
     List<AugmentingPath> augmentingPaths = new ArrayList<>();
     Set<Vertex> left = bipartition.getFirstPartition();
-    disjointLeft(left);
-   return augmentingPaths;
+    Set<Vertex> right = bipartition.getSecondPartition();
+    while (true) {
+      Set<Edge> leftWings = disjointLeft(left);
+      if (leftWings.size() < matchingSize * sigma) {
+        return augmentingPaths;
+      }
+      Set<Edge> rightWings = disjointRight(right);
+      Set<AugmentingPath> foundPaths = createAugmentingPaths(leftWings, rightWings);
+      Set<String> addToIngore = filterVertices(foundPaths);
+      globalIgnore.addAll(addToIngore);
+      augmentingPaths.addAll(foundPaths);
+    }
   }
 
-  private Set<Vertex> disjointLeft(Set<Vertex> left) throws Exception {
-    Set<Vertex> disjointLeftWings = new HashSet<>();
+  private Set<Edge> disjointLeft(Set<Vertex> left) throws Exception {
+    Set<Edge> disjointLeftWings = new HashSet<>();
     Iterator<Edge> iterator = getStreamHead();
-    for(Edge edge = iterator.next();iterator.hasNext();) {
-      System.out.println(edge);
+    while (iterator.hasNext()) {
+      Edge edge = iterator.next();
+      if (areVerticesIgnored(edge)) {
+        continue;
+      }
+      VertexPair pair = getEdgeVertices(edge);
+      if (left.contains(pair.getLeftVertex()) || left.contains(pair.getRightVertex())) {
+        if (!matching.getEdges().contains(edge)) {
+          if (!ignoreContainsEdgeVertices(edge)) {
+            if(isPairFree(pair)) {
+              disjointLeftWings.add(edge);
+              addEdgeVerticesToIgnore(edge);
+              addMatchingEdgeToChecked(edge);
+            }
+          }
+        }
+      }
     }
     return disjointLeftWings;
+  }
+
+  private Set<Edge> disjointRight(Set<Vertex> right) throws Exception {
+    Set<String> ignoreRightVertices = new HashSet<>();
+    Set<Edge> disjointRightWings = new HashSet<>();
+    Iterator<Edge> iterator = getStreamHead();
+    while (iterator.hasNext()) {
+      Edge edge = iterator.next();
+      if (areVerticesIgnored(edge)) {
+        continue;
+      }
+      VertexPair pair = getEdgeVertices(edge);
+      if (right.contains(pair.getLeftVertex()) || right.contains(pair.getRightVertex())) {
+        if (!matching.getEdges().contains(edge)) {
+          Edge matchingEdge = getMatchingEdge(edge);
+          if (matchingEdge != null && edgesWithLeftWings.contains(matchingEdge)) {
+            if (!ignoreRightVertices.contains(edge.getLeftVertex()) && !ignoreRightVertices.contains(edge.getRightVertex())) {
+              if(isPairFree(pair)) {
+                ignoreRightVertices.add(edge.getLeftVertex());
+                ignoreRightVertices.add(edge.getRightVertex());
+                disjointRightWings.add(edge);
+              }
+            }
+          }
+        }
+      }
+    }
+    return disjointRightWings;
+  }
+
+  private Set<String> filterVertices(Set<AugmentingPath> augmentingPaths) throws Exception {
+    Set<String> checkedVertices = new HashSet<>();
+    for (Edge edge : edgesWithLeftWings) {
+      checkedVertices.add(edge.getLeftVertex());
+      checkedVertices.add(edge.getRightVertex());
+    }
+    for (AugmentingPath path : augmentingPaths) {
+      checkedVertices.addAll(removeAugmentingWings(path));
+    }
+    Iterator<Edge> iterator = getStreamHead();
+    while (iterator.hasNext()) {
+      Edge edge = iterator.next();
+    }
+
+
+    return checkedVertices;
   }
 
   //Find for matching only
@@ -98,20 +172,20 @@ public class MatchingAlgorithm extends AbstractAlgorithm {
 
               //Refac these blocks
               boolean contains = false;
-              if(ignoreVertices.contains(matchingEdge.getLeftVertex()) || ignoreVertices.contains(matchingEdge.getRightVertex())) {
+              if (ignoreVertices.contains(matchingEdge.getLeftVertex()) || ignoreVertices.contains(matchingEdge.getRightVertex())) {
                 contains = true;
               }
 
-              if(ignoreVertices.contains(edge.getLeftVertex()) || ignoreVertices.contains(edge.getRightVertex())) {
+              if (ignoreVertices.contains(edge.getLeftVertex()) || ignoreVertices.contains(edge.getRightVertex())) {
                 contains = true;
               }
 
               if (matchingEdge.getLeftVertex().equals(edge.getLeftVertex()) || matchingEdge.getLeftVertex().equals(edge.getRightVertex())) {
-                if(!contains) {
+                if (!contains) {
                   matchingPairs.add(new MatchingLeftWingPair(matchingEdge, edge, matchingEdge.getRightVertex()));
                 }
               } else if (matchingEdge.getRightVertex().equals(edge.getLeftVertex()) || matchingEdge.getRightVertex().equals(edge.getRightVertex())) {
-                if(!contains) {
+                if (!contains) {
                   matchingPairs.add(new MatchingLeftWingPair(matchingEdge, edge, matchingEdge.getLeftVertex()));
                 }
               }
@@ -186,7 +260,7 @@ public class MatchingAlgorithm extends AbstractAlgorithm {
   }
 
   private void applyAugmentingPathChanges(List<AugmentingPath> augmentingPaths) {
-    for(AugmentingPath augmentingPath: augmentingPaths) {
+    for (AugmentingPath augmentingPath : augmentingPaths) {
       matching.getEdges().remove(augmentingPath.getToReplace());
       matching.addEdge(augmentingPath.leftEdge);
       matching.addEdge(augmentingPath.rightEdge);
@@ -205,6 +279,111 @@ public class MatchingAlgorithm extends AbstractAlgorithm {
     Vertex right = vertexLookup(edge.getRightVertex());
     VertexPair pair = new VertexPair(left, right);
     return pair;
+  }
+
+  private void addEdgeVerticesToIgnore(Edge edge) {
+    String leftVertexName = edge.getLeftVertex();
+    String rightVertexName = edge.getRightVertex();
+    ignoreVertices.add(leftVertexName);
+    ignoreVertices.add(rightVertexName);
+  }
+
+  private boolean ignoreContainsEdgeVertices(Edge edge) {
+    String leftVertexName = edge.getLeftVertex();
+    String rightVertexName = edge.getRightVertex();
+    boolean leftContains = ignoreVertices.contains(leftVertexName);
+    boolean rightContains = ignoreVertices.contains(rightVertexName);
+    return leftContains || rightContains;
+  }
+
+  private void addMatchingEdgeToChecked(Edge edge) {
+    String leftVertexName = edge.getLeftVertex();
+    String rightVertexName = edge.getRightVertex();
+    Edge leftEdge = matching.getVertexEdgeMap().get(leftVertexName);
+    Edge rightEdge = matching.getVertexEdgeMap().get(rightVertexName);
+    if (leftEdge != null) {
+      edgesWithLeftWings.add(leftEdge);
+      return;
+    }
+    if (rightEdge != null) {
+      edgesWithLeftWings.add(rightEdge);
+    }
+  }
+
+  private Edge getMatchingEdge(Edge edge) {
+    String leftVertexName = edge.getLeftVertex();
+    String rightVertexName = edge.getRightVertex();
+    Edge leftEdge = matching.getVertexEdgeMap().get(leftVertexName);
+    Edge rightEdge = matching.getVertexEdgeMap().get(rightVertexName);
+    if (leftEdge != null) {
+      return leftEdge;
+    } else if (rightEdge != null) {
+      return rightEdge;
+    } else {
+      return null;
+    }
+  }
+
+  private boolean areVerticesIgnored(Edge edge) {
+    String leftVertexName = edge.getLeftVertex();
+    String rightVertexName = edge.getRightVertex();
+    boolean isLeftIgnored = globalIgnore.contains(leftVertexName);
+    boolean isRightIgnored = globalIgnore.contains(rightVertexName);
+    return isLeftIgnored || isRightIgnored;
+  }
+
+  private Set<AugmentingPath> createAugmentingPaths(Set<Edge> leftEdges, Set<Edge> rightEdges) {
+    Set<AugmentingPath> augmentingPaths = new HashSet<>();
+    for (Edge left : leftEdges) {
+      for (Edge right : rightEdges) {
+        AugmentingPath path = createAugmentingPath(left, right);
+        if (path != null) {
+          augmentingPaths.add(path);
+        }
+      }
+    }
+    return augmentingPaths;
+  }
+
+  private AugmentingPath createAugmentingPath(Edge left, Edge right) {
+    if (!left.equals(right)) {
+      Edge leftMatching = getMatchingEdge(left);
+      Edge rightMatching = getMatchingEdge(right);
+      if (leftMatching != null && leftMatching.equals(rightMatching)) {
+        return new AugmentingPath(leftMatching, left, right);
+      }
+    }
+    return null;
+  }
+
+  private Set<String> removeAugmentingWings(AugmentingPath augmentingPath) {
+    Set<String> wingTips = new HashSet<>();
+    Edge matchingEdge = augmentingPath.getToReplace();
+    if (matchingEdge.getLeftVertex().equals(augmentingPath.getLeftEdge().getLeftVertex()) || matchingEdge.getRightVertex().equals(augmentingPath.getLeftEdge().getLeftVertex())) {
+      wingTips.add(augmentingPath.getLeftEdge().getRightVertex());
+    } else {
+      wingTips.add(augmentingPath.getLeftEdge().getLeftVertex());
+    }
+    if (matchingEdge.getLeftVertex().equals(augmentingPath.getRightEdge().getLeftVertex()) || matchingEdge.getRightVertex().equals(augmentingPath.getRightEdge().getLeftVertex())) {
+      wingTips.add(augmentingPath.getRightEdge().getRightVertex());
+    } else {
+      wingTips.add(augmentingPath.getRightEdge().getLeftVertex());
+    }
+    return wingTips;
+  }
+
+  private boolean isPairFree(VertexPair pair) {
+    boolean isLeftFree = isFreeVertex(pair.getLeftVertex().getName());
+    boolean isRightFree = isFreeVertex(pair.getRightVertex().getName());
+    return isLeftFree || isRightFree;
+  }
+
+  private boolean isFreeVertex(String vertex) {
+    Edge edge = matching.getVertexEdgeMap().get(vertex);
+    if(edge == null) {
+      return true;
+    }
+    return false;
   }
 
   @AllArgsConstructor
@@ -238,6 +417,7 @@ public class MatchingAlgorithm extends AbstractAlgorithm {
   }
 
   @AllArgsConstructor
+  @EqualsAndHashCode
   private static class AugmentingPath {
 
     @Getter
